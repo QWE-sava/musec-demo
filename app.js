@@ -110,6 +110,15 @@ async function runPiano(sess, chords, mode, nBars, onStep) {
 }
 
 
+function dedup(ns) {
+  const best = new Map();
+  for (const n of ns) {
+    const k = n.pos16 + ':' + n.pitch;
+    const o = best.get(k);
+    if (!o || n.len16 > o.len16 || (n.len16 === o.len16 && n.vel > o.vel)) best.set(k, n);
+  }
+  return [...best.values()].sort((a, b) => a.pos16 - b.pos16 || a.pitch - b.pitch);
+}
 function decode(ids) {
   const bars = [];
   let cur = null, i = 0;
@@ -117,7 +126,7 @@ function decode(ids) {
   while (i < ids.length) {
     const t = ids[i];
     if (t === BAR) {
-      if (cur !== null) bars.push({ id: bars.length, notes: cur.sort((a, b) => a.pos16 - b.pos16 || a.pitch - b.pitch) });
+      if (cur !== null) bars.push({ id: bars.length, notes: dedup(cur) });
       cur = []; i++;
     } else if (isSpec(t)) { i++; }
     else if (i + 3 < ids.length && ids[i] >= 5 && ids[i] < 21 && ids[i + 1] >= 21 && ids[i + 1] < 109 && ids[i + 2] >= 109 && ids[i + 2] < 141 && ids[i + 3] >= 141 && ids[i + 3] < 149) {
@@ -126,7 +135,7 @@ function decode(ids) {
       i += 4;
     } else { i++; }
   }
-  if (cur && cur.length) bars.push({ id: bars.length, notes: cur.sort((a, b) => a.pos16 - b.pos16 || a.pitch - b.pitch) });
+  if (cur && cur.length) bars.push({ id: bars.length, notes: dedup(cur) });
   return { version: '0.1', tempo_qpm: 120, time_signature: '4/4', bars };
 }
 
@@ -222,7 +231,7 @@ document.getElementById('gen').onclick = async () => {
       const ns = [];
       if (i < melD.bars.length) melD.bars[i].notes.forEach(n => { if (n.pitch >= 28 && n.pitch <= 93) ns.push({ ...n, vel: Math.min(7, n.vel + 1) }); });
       if (i < accD.bars.length) accD.bars[i].notes.forEach(n => { if (n.pitch >= 28 && n.pitch <= 93) ns.push(n); });
-      full.bars.push({ id: i, notes: ns.sort((a, b) => a.pos16 - b.pos16 || a.pitch - b.pitch) });
+      full.bars.push({ id: i, notes: dedup(ns) });
     }
     lastData = full;
     lastMidiB64 = null;
