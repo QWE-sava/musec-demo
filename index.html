@@ -28,6 +28,10 @@ progress { width: 100%; }
 </div>
 <progress id="bar" value="0" max="100"></progress>
 <div id="chords"></div>
+<details id="jsonbox"><summary>JSON表示</summary><pre id="jsonpre">未生成</pre></details>
+<div>
+<button id="dljson" disabled>JSON保存</button>
+</div>
 <div id="log">準備完了。「生成」を押すとモデルを読み込みます。</div>
 <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.0/dist/ort.webgpu.min.js" onerror="window.libraryLoadError='ONNX Runtime WebをCDNから読み込めません。インターネット接続またはCDNへの接続を確認してください。'"></script>
 <script src="https://cdn.jsdelivr.net/npm/tone@15.0.4/build/Tone.js" onerror="window.toneLoadError='Tone.jsをCDNから読み込めません。試聴機能は利用できません。'"></script>

@@ -226,6 +226,7 @@ document.getElementById('gen').onclick = async () => {
     }
     lastData = full;
     lastMidiB64 = null;
+    showJson(full);
     bar.value = 100;
     log('done: ' + full.bars.map(b => b.notes.length).join(','));
     document.getElementById('play').disabled = false;
@@ -258,6 +259,7 @@ async function genServer(mood) {
     const j = await r.json();
     document.getElementById('chords').textContent = j.chords.join(' - ');
     lastData = j.json;
+    showJson(j.json);
     document.getElementById('log').textContent +=
       `\nserver: ${j.time_s}s notes/bar: ${j.notes_per_bar}`;
     lastMidiB64 = j.midi_b64;
@@ -271,6 +273,17 @@ try {
 } catch (e) {}
 
 let lastMidiB64 = null;
+function showJson(data) {
+  document.getElementById('jsonpre').textContent = JSON.stringify(data, null, 1);
+  document.getElementById('dljson').disabled = false;
+}
+document.getElementById('dljson').onclick = () => {
+  if (!lastData) return;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(lastData, null, 1)], { type: 'application/json' }));
+  a.download = 'musec.json';
+  a.click();
+};
 document.getElementById('dl').onclick = () => {
   if (!lastData) return;
   let blob;
