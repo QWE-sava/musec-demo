@@ -234,6 +234,7 @@ document.getElementById('gen').onclick = async () => {
       full.bars.push({ id: i, notes: dedup(ns) });
     }
     lastData = full;
+    if (window.renderRoll) window.renderRoll(full);
     lastMidiB64 = null;
     showJson(full);
     bar.value = 100;
@@ -269,6 +270,7 @@ async function genServer(mood) {
     document.getElementById('chords').textContent = j.chords.join(' - ');
     lastData = j.json;
     showJson(j.json);
+    if (window.renderRoll) window.renderRoll(j.json);
     document.getElementById('log').textContent +=
       `\nserver: ${j.time_s}s notes/bar: ${j.notes_per_bar}`;
     lastMidiB64 = j.midi_b64;

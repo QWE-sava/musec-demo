@@ -5,36 +5,117 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MUSE-C demo</title>
 <style>
-body { font-family: system-ui, sans-serif; max-width: 720px; margin: 2em auto; padding: 0 1em; }
-button { font-size: 1rem; padding: .5em 1em; margin: .25em; }
-#log { white-space: pre-wrap; background: #f4f4f4; padding: 1em; min-height: 8em; }
-progress { width: 100%; }
+  :root { --bg: #f2f2f6; --card: #fff; --acc: #007aff; --tx: #1c1c1e; --sub: #8e8e93; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--tx);
+         font-family: -apple-system, 'Hiragino Sans', sans-serif; }
+  .app { max-width: 820px; margin: 0 auto; padding: 20px 16px 60px; }
+  h1 { font-size: 28px; margin: 6px 0 2px; }
+  .sub { color: var(--sub); font-size: 13px; margin-bottom: 6px; }
+  .card { background: var(--card); border-radius: 16px; padding: 16px; margin-bottom: 12px;
+          box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .chip { border: 1.5px solid #d1d1d6; border-radius: 999px; padding: 8px 16px;
+          font-size: 15px; background: #fff; }
+  .chip.on { background: var(--acc); border-color: var(--acc); color: #fff; font-weight: 600; }
+  select, input { font-size: 15px; padding: 8px; border-radius: 10px; border: 1px solid #d1d1d6; }
+  .chords { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+  .ch { background: #eef4ff; border-radius: 8px; padding: 6px 10px; font-size: 14px; font-weight: 600; }
+  .btn { display: block; width: 100%; border: 0; border-radius: 14px; padding: 14px;
+         font-size: 17px; font-weight: 700; background: var(--acc); color: #fff; margin-top: 4px; }
+  .btn.ghost { background: #e5e5ea; color: var(--acc); }
+  .btn:disabled { opacity: .4; }
+  .row { display: flex; gap: 8px; }
+  .row .btn { margin-top: 8px; }
+  progress { width: 100%; margin-top: 8px; }
+  .roll { height: 120px; position: relative; background: #fafafa; border-radius: 10px;
+          margin-top: 10px; overflow: hidden; }
+  .n { position: absolute; height: 5px; background: #ff9f0a; border-radius: 3px; }
+  .n.mel { background: var(--acc); height: 6px; }
+  #log { white-space: pre-wrap; font-size: 12px; color: var(--sub); margin-top: 8px; }
+  details { margin-top: 8px; font-size: 13px; }
+  pre { background: #f4f4f6; padding: 10px; border-radius: 10px; overflow: auto; max-height: 300px; font-size: 11px; }
+  .credit { font-size: 11px; color: var(--sub); margin-top: 16px; }
+  .hidden { display: none; }
 </style>
 </head>
 <body>
-<h1>MUSE-C demo (Phase 3)</h1>
-<p>言葉を選んで生成。すべてブラウザ内で動作します。</p>
-<label>動作: <select id="mode"><option value="browser">ブラウザ推論</option><option value="server">サーバ利用</option></select></label>
-<details id="srvbox"><summary>サーバ設定（URL・キーはこの端末のみに保存）</summary>
-<label>URL: <input id="srv" size="40" placeholder="https://xxx.trycloudflare.com"></label><br>
-<label>キー: <input id="skey" size="40" type="password"></label>
-</details>
-<label>言葉: <select id="mood"></select></label>
-<label>EP: <select id="ep"><option value="webgpu">webgpu</option><option value="wasm">wasm</option></select></label>
-<div>
-<button id="gen">生成</button>
-<button id="play" disabled>試聴</button>
-<button id="dl" disabled>MIDI保存</button>
+<div class="app">
+  <h1>MUSE-C</h1>
+  <div class="sub">Music AI with You! — 言葉を選ぶだけでピアノ曲の断片ができる</div>
+
+  <div class="card">
+    <div class="sub">1. 言葉を選ぶ</div>
+    <div class="chips" id="moodchips"></div>
+    <select id="mood" class="hidden"></select>
+  </div>
+
+  <div class="card">
+    <div class="sub">2. 動作とコード進行</div>
+    <label>動作: <select id="mode"><option value="browser">ブラウザ推論</option><option value="server">サーバ利用</option></select></label>
+    <label>EP: <select id="ep"><option value="webgpu">webgpu</option><option value="wasm">wasm</option></select></label>
+    <details id="srvbox"><summary>サーバ設定（URL・キーはこの端末のみに保存）</summary>
+      <label>URL: <input id="srv" size="36" placeholder="https://xxx.trycloudflare.com"></label><br>
+      <label>キー: <input id="skey" size="24" type="password"></label>
+    </details>
+    <div class="chords" id="chords"><span class="sub">生成すると表示されます</span></div>
+  </div>
+
+  <div class="card">
+    <button class="btn" id="gen">生成する</button>
+    <progress id="bar" value="0" max="100"></progress>
+    <div class="roll" id="roll"></div>
+    <div class="row">
+      <button class="btn ghost" id="play" disabled>試聴</button>
+      <button class="btn ghost" id="dl" disabled>MIDI保存</button>
+      <button class="btn ghost" id="dljson" disabled>JSON保存</button>
+    </div>
+    <div class="meta sub" id="meta"></div>
+    <div id="log">モデル読込は初回生成時に行います</div>
+    <details id="jsonbox"><summary>JSON表示</summary><pre id="jsonpre">未生成</pre></details>
+  </div>
+
+  <div class="credit">学習データ: POP909 Dataset (CC BY 4.0) ＋ 自作・許諾済みピアノMIDI ／ 生成物は特定楽曲の複製ではありません</div>
 </div>
-<progress id="bar" value="0" max="100"></progress>
-<div id="chords"></div>
-<details id="jsonbox"><summary>JSON表示</summary><pre id="jsonpre">未生成</pre></details>
-<div>
-<button id="dljson" disabled>JSON保存</button>
-</div>
-<div id="log">準備完了。「生成」を押すとモデルを読み込みます。</div>
-<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.0/dist/ort.webgpu.min.js" onerror="window.libraryLoadError='ONNX Runtime WebをCDNから読み込めません。インターネット接続またはCDNへの接続を確認してください。'"></script>
-<script src="https://cdn.jsdelivr.net/npm/tone@15.0.4/build/Tone.js" onerror="window.toneLoadError='Tone.jsをCDNから読み込めません。試聴機能は利用できません。'"></script>
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.0/dist/ort.webgpu.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tone@15.0.4/build/Tone.js"></script>
 <script src="./app.js"></script>
+<script>
+(function () {
+  const sel = document.getElementById('mood');
+  ['青春','切ない','夜','疾走感','透明感','希望','緊張感'].forEach(m => {
+    const o = document.createElement('option'); o.textContent = m; sel.appendChild(o);
+  });
+  const box = document.getElementById('moodchips');
+  function sync() {
+    box.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c.textContent === sel.value));
+  }
+  sel.value = '青春';
+  ['青春','切ない','夜','疾走感','透明感','希望','緊張感'].forEach(m => {
+    const b = document.createElement('button');
+    b.className = 'chip'; b.textContent = m;
+    b.onclick = () => { sel.value = m; sync(); };
+    box.appendChild(b);
+  });
+  sync();
+  window.renderRoll = function (data) {
+    const el = document.getElementById('roll');
+    el.innerHTML = '';
+    if (!data || !data.bars) return;
+    const W = el.clientWidth || 700;
+    data.bars.forEach((bar, bi) => bar.notes.forEach(n => {
+      const d = document.createElement('div');
+      const mel = n.vel >= 7;
+      d.className = 'n' + (mel ? ' mel' : '');
+      d.style.left = ((bi * 16 + n.pos16) / (data.bars.length * 16) * 98) + '%';
+      d.style.top = (110 - (n.pitch - 21) / 87 * 100) + 'px';
+      d.style.width = Math.max(1.5, n.len16 / 16 * 12) + '%';
+      el.appendChild(d);
+    }));
+    const meta = document.getElementById('meta');
+    if (meta) meta.textContent = '音数/小節: ' + data.bars.map(b => b.notes.length).join(', ');
+  };
+})();
+</script>
 </body>
 </html>
