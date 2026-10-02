@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MUSE-C demo</title>
+<style>
+body { font-family: system-ui, sans-serif; max-width: 720px; margin: 2em auto; padding: 0 1em; }
+button { font-size: 1rem; padding: .5em 1em; margin: .25em; }
+#log { white-space: pre-wrap; background: #f4f4f4; padding: 1em; min-height: 8em; }
+progress { width: 100%; }
+</style>
+</head>
+<body>
+<h1>MUSE-C demo (Phase 3)</h1>
+<p>言葉を選んで生成。すべてブラウザ内で動作します。</p>
+<label>動作: <select id="mode"><option value="browser">ブラウザ推論</option><option value="server">サーバ利用</option></select></label>
+<details id="srvbox"><summary>サーバ設定（URL・キーはこの端末のみに保存）</summary>
+<label>URL: <input id="srv" size="40" placeholder="https://xxx.trycloudflare.com"></label><br>
+<label>キー: <input id="skey" size="40" type="password"></label>
+</details>
+<label>言葉: <select id="mood"></select></label>
+<label>EP: <select id="ep"><option value="webgpu">webgpu</option><option value="wasm">wasm</option></select></label>
+<div>
+<button id="gen">生成</button>
+<button id="play" disabled>試聴</button>
+<button id="dl" disabled>MIDI保存</button>
+</div>
+<progress id="bar" value="0" max="100"></progress>
+<div id="chords"></div>
+<div id="log">準備完了。「生成」を押すとモデルを読み込みます。</div>
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.0/dist/ort.webgpu.min.js" onerror="window.libraryLoadError='ONNX Runtime WebをCDNから読み込めません。インターネット接続またはCDNへの接続を確認してください。'"></script>
+<script src="https://cdn.jsdelivr.net/npm/tone@15.0.4/build/Tone.js" onerror="window.toneLoadError='Tone.jsをCDNから読み込めません。試聴機能は利用できません。'"></script>
+<script src="./app.js"></script>
+</body>
+</html>
