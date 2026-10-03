@@ -229,8 +229,8 @@ document.getElementById('gen').onclick = async () => {
     const full = { version: '0.1', tempo_qpm: 120, time_signature: '4/4', bars: [] };
     for (let i = 0; i < 8; i++) {
       const ns = [];
-      if (i < melD.bars.length) melD.bars[i].notes.forEach(n => { if (n.pitch >= 28 && n.pitch <= 93) ns.push({ ...n, vel: Math.min(7, n.vel + 1) }); });
-      if (i < accD.bars.length) accD.bars[i].notes.forEach(n => { if (n.pitch >= 28 && n.pitch <= 93) ns.push(n); });
+      if (i < melD.bars.length) melD.bars[i].notes.forEach(n => { if (n.pitch >= 28 && n.pitch <= 93) ns.push({ ...n, pitch: n.pitch - 12, vel: Math.min(7, n.vel + 2) }); });
+      if (i < accD.bars.length) accD.bars[i].notes.forEach(n => { if (n.pitch >= 28 && n.pitch <= 93) ns.push({ ...n, vel: Math.max(0, n.vel - 2) }); });
       full.bars.push({ id: i, notes: dedup(ns) });
     }
     lastData = full;
