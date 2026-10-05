@@ -260,6 +260,55 @@ async function genServer(mood) {
   const urlEl = document.getElementById('srv'), keyEl = document.getElementById('skey');
   const url = urlEl.value.replace(/\/$/, ''), key = keyEl.value;
   try { localStorage.setItem('musec_srv', url); } catch (e) {}
+  const logEl = document.getElementById('log');
+  try {
+    const r = await fetch(url + '/generate_stream', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'x-key': key },
+      body: JSON.stringify({ mood, bars: 8 }),
+    });
+    if (!r.ok || !r.body) throw new Error('HTTP ' + r.status);
+    await Tone.start();
+    const synth = new Tone.PolySynth(Tone.Synth).toDestination();
+    const six = 60 / 120 / 4, barLen = 16 * six;
+    let anchor = null;
+    const full = { version: '0.1', tempo_qpm: 120, time_signature: '4/4', bars: [] };
+    lastData = full; lastMidiB64 = null;
+    const reader = r.body.getReader(), dec = new TextDecoder();
+    let buf = '';
+    const schedBar = (b) => {
+      if (anchor === null) anchor = Tone.now() + 0.5;
+      full.bars.push(b); lastData = full;
+      if (window.renderRoll) window.renderRoll(full);
+      const t = Math.max(anchor + b.id * barLen, Tone.now() + 0.05);
+      b.notes.forEach(n => synth.triggerAttackRelease(
+        Tone.Frequency(n.pitch, 'midi').toNote(), n.len16 * six, t + n.pos16 * six, 0.3 + n.vel * 0.1));
+      logEl.textContent += `\nbar ${b.id}: ${b.notes.length}`;
+    };
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (value) buf += dec.decode(value, { stream: true });
+      let idx;
+      while ((idx = buf.indexOf('\n\n')) >= 0) {
+        const ev = buf.slice(0, idx); buf = buf.slice(idx + 2);
+        const lines = ev.split('\n');
+        const kind = (lines[0] || '').replace('event:', '').trim();
+        const data = JSON.parse(lines.slice(1).join('\n').replace(/^data: /, ''));
+        if (kind === 'chords') document.getElementById('chords').textContent = data.chords.join(' - ');
+        else if (kind === 'bar') schedBar(data);
+        else if (kind === 'done') {
+          lastMidiB64 = data.midi_b64;
+          logEl.textContent += `\nserver stream: ${data.time_s}s notes/bar: ${data.notes_per_bar}`;
+          document.getElementById('play').disabled = false;
+          document.getElementById('dl').disabled = false;
+        }
+      }
+      if (done) break;
+    }
+    showJson(full);
+    document.getElementById('bar').value = 100;
+  } catch (e) { await genServerOnce(url, key, mood); }
+}
+async function genServerOnce(url, key, mood) {
   try {
     const r = await fetch(url + '/generate', {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'x-key': key },
